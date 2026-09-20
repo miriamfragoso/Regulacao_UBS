@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 14px; color: #333; padding: 15px; margin: 0; background-color: #fcfcfc; }
+      .alert-box { background-color: #fff3cd; color: #856404; padding: 12px 15px; border-radius: 6px; margin-bottom: 15px; font-weight: bold; border: 1px solid #ffeeba; display: flex; align-items: center; gap: 8px; }
+      .data-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border-radius: 4px; overflow: hidden; }
+      .data-table tr:nth-child(even) { background-color: #f8f9fa; }
+      .data-table td { padding: 8px 12px; border-bottom: 1px solid #edf2f7; }
+      .label { font-weight: bold; color: #4a5568; width: 35%; }
+      .value { color: #2d3748; }
+      .sisreg-value { color: #0056b3; font-weight: bold; }
+      .motivo-box { font-size: 12px; max-height: 60px; overflow-y: auto; display: block; padding-right: 5px; color: #718096; }
+      .question { font-weight: bold; margin-bottom: 20px; color: #1a202c; font-size: 14.5px; }
+      .btn-container { display: flex; gap: 12px; justify-content: flex-end; }
+      button { border: none; padding: 10px 18px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 13.5px; transition: background 0.2s; }
+      .btn-cancel { background-color: #e53e3e; color: white; }
+      .btn-cancel:hover { background-color: #c53030; }
+      .btn-confirm { background-color: #38a169; color: white; }
+      .btn-confirm:hover { background-color: #2f855a; }
+      .btn-type { width: 100%; text-align: left; padding: 14px; margin-bottom: 10px; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; }
+      .btn-nova { background-color: #3182ce; color: white; border: 1px solid #2b6cb0; }
+      .btn-nova:hover { background-color: #2b6cb0; }
+      .btn-retorno { background-color: #319795; color: white; border: 1px solid #2c7a7b; }
+      .btn-retorno:hover { background-color: #2c7a7b; }
+      .btn-back { background-color: #718096; color: white; font-size: 12px; padding: 6px 12px; }
+      .loader { display: none; text-align: center; font-weight: bold; color: #3182ce; margin-top: 20px; }
+    </style>
+  </head>
+  <body>
+
+    <div id="passo1">
+      <div class="alert-box">
+        ⚠️ Registro já localizado na Fila Ativa: <?= dados.local ?>
+      </div>
+      
+      <table class="data-table">
+        <tr><td class="label">Paciente:</td><td class="value"><?= dados.nome ?></td></tr>
+        <tr><td class="label">CPF:</td><td class="value"><?= dados.cpf ?></td></tr>
+        <tr><td class="label">Especialidade:</td><td class="value"><?= dados.espec ?></td></tr>
+        <tr><td class="label">CID:</td><td class="value"><?= dados.cid ?></td></tr>
+        <tr><td class="label">Data Entrada:</td><td class="value"><?= dados.data ?></td></tr>
+        <tr><td class="label">Origem:</td><td class="value"><?= dados.origem ?></td></tr>
+        <tr><td class="label">SISREG:</td><td class="sisreg-value"><?= dados.sisreg ?></td></tr>
+        <tr><td class="label">Motivo:</td><td><div class="motivo-box"><?= dados.motivo ?></div></td></tr>
+      </table>
+      
+      <p class="question">Deseja seguir com a inclusão de uma nova demanda para esta especialidade?</p>
+      
+      <div class="btn-container">
+        <button class="btn-cancel" onclick="fecharJanela()">Não, Cancelar</button>
+        <button class="btn-confirm" onclick="avancarParaPasso2()">Sim, Continuar</button>
+      </div>
+    </div>
+
+    <div id="passo2" style="display: none;">
+      <div style="background-color: #ebf8ff; color: #2b6cb0; padding: 12px 15px; border-radius: 6px; margin-bottom: 20px; font-weight: bold; border: 1px solid #bee3f8;">
+        📋 Selecione o Tipo da Nova Solicitação
+      </div>
+      
+      <p class="question" style="margin-bottom: 25px;">Como deseja classificar este novo envio na planilha?</p>
+      
+      <button class="btn-type btn-nova" onclick="finalizarEnvio('NOVA SOLICITACAO')">🔹 1. NOVA SOLICITACAO</button>
+      <button class="btn-type btn-retorno" onclick="finalizarEnvio('DEMANDA RETORNO')">🔄 2. DEMANDA RETORNO</button>
+      
+      <div class="btn-container" style="margin-top: 30px;">
+        <button class="btn-back" onclick="voltarParaPasso1()">Voltar</button>
+      </div>
+    </div>
+
+    <div id="loading" class="loader">
+      Gravando dados nas planilhas... Por favor, aguarde.
+    </div>
+
+    <script>
+      function avancarParaPasso2() {
+        document.getElementById('passo1').style.display = 'none';
+        document.getElementById('passo2').style.display = 'block';
+      }
+
+      function voltarParaPasso1() {
+        document.getElementById('passo2').style.display = 'none';
+        document.getElementById('passo1').style.display = 'block';
+      }
+
+      function fecharJanela() {
+        google.script.host.close();
+      }
+
+      function finalizarEnvio(tipoStatus) {
+        document.getElementById('passo2').style.display = 'none';
+        document.getElementById('loading').style.display = 'block';
+        
+        google.script.run
+          .withSuccessHandler(function() {
+            google.script.host.close();
+          })
+          .processarDecisaoHTML(tipoStatus);
+      }
+    </script>
+  </body>
+</html>
