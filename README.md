@@ -6,4 +6,5 @@ Este projeto contém a automação em Google Apps Script e interfaces HTML para 
 - Fila ativa e histórico de demandas de pacientes.
 - Verificação e formatação automática de CPF.
 - Dashboard com indicadores de prioridade (Emergência, Urgência, Prioritário e Eletivo).
-- Integração com planilhas de equipes.
+- Integração com planilhas de equipes de saúde e reguladores.
+- Histórico de casos regulados.
