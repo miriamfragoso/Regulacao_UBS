@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+      :root { --primary: #3182ce; --success: #38a169; --warning: #dd6b20; --bg: #f7fafc; --text: #2d3748; }
+      body { font-family: 'Segoe UI', system-ui, sans-serif; background-color: var(--bg); color: var(--text); padding: 12px; margin: 0; }
+      .box { background: white; padding: 12px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 12px; border: 1px solid #e2e8f0; }
+      label { display: block; font-weight: bold; margin-bottom: 6px; font-size: 13px; color: #4a5568; }
+      input[type="text"] { padding: 8px 12px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 14px; width: 100%; box-sizing: border-box; margin-bottom: 8px; }
+      .btn { background: var(--primary); color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px; width: 100%; text-transform: uppercase; }
+      .btn-add { background: var(--success); margin-bottom: 12px; }
+      .btn-limpar { background: #718096; margin-top: 4px; }
+      .paciente-header { background: #ebf8ff; border-left: 4px solid var(--primary); padding: 10px; border-radius: 6px; margin-bottom: 12px; font-size: 13px; }
+      .card-status { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+      .badge { display: inline-block; padding: 4px 8px; font-size: 10px; font-weight: bold; border-radius: 4px; text-transform: uppercase; align-self: flex-start; }
+      .badge-fila { background: #feebc8; color: #c05621; border: 1px solid #fbd38d; }
+      .badge-concluido { background: #c6f6d5; color: #22543d; border: 1px solid #9ae6b4; }
+      .grid-dados { display: grid; grid-template-columns: 1fr; gap: 4px; font-size: 12px; }
+      .item-dado { background: #f7fafc; padding: 6px; border-radius: 4px; border: 1px solid #edf2f7; }
+      .item-dado strong { color: #4a5568; display: block; font-size: 9px; text-transform: uppercase; margin-bottom: 2px; }
+      .info-final { background: #fff; border: 1px solid #cbd5e0; padding: 10px; border-radius: 6px; margin-top: 4px; }
+      .loader { text-align: center; font-weight: bold; color: var(--primary); display: none; margin: 15px 0; }
+      .no-results { text-align: center; color: #a0aec0; padding: 15px; font-size: 13px; background: white; border-radius: 8px; border: 1px dashed #cbd5e0; }
+      
+      /* Estilização para destacar o médico ou profissional solicitante */
+      .solicitante-box { background-color: #f1f5f9; padding: 8px; border-radius: 6px; border-left: 3px solid #4a5568; font-size: 12px; margin-bottom: 4px; }
+      .solicitante-box span { display: block; font-size: 9px; font-weight: bold; color: #64748b; text-transform: uppercase; }
+    </style>
+  </head>
+  <body>
+
+    <button class="btn btn-add" onclick="google.script.run.abrirModalInclusao()">➕ Nova Solicitação</button>
+
+    <div class="box">
+      <label>Consultar Status por CPF:</label>
+      <input type="text" id="cpfBusca" placeholder="000.111.222-33" maxlength="14" oninput="mascararCPF(this)" onkeydown="if(event.key === 'Enter') consultarStatus()">
+      <button class="btn" onclick="consultarStatus()">Consultar</button>
+      <button class="btn btn-limpar" onclick="limparPainel()">Limpar</button>
+    </div>
+
+    <div id="meuLoader" class="loader">🔍 Verificando banco...</div>
+    <div id="painelResultados"></div>
+
+    <script>
+      function mascararCPF(input) {
+        var v = input.value.replace(/\D/g, "");
+        if (v.length <= 11) {
+          v = v.replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+        }
+        input.value = v;
+      }
+
+      function consultarStatus() {
+        var cpf = document.getElementById('cpfBusca').value;
+        if(cpf.length < 14) { alert("Digite o CPF completo."); return; }
+        document.getElementById('painelResultados').innerHTML = "";
+        document.getElementById('meuLoader').style.display = "block";
+        
+        google.script.run
+          .withSuccessHandler(function(resultadoTexto) {
+            document.getElementById('meuLoader').style.display = "none";
+            try {
+              var res = JSON.parse(resultadoTexto);
+              renderizarPainelEquipe(res);
+            } catch(e) {
+              document.getElementById('painelResultados').innerHTML = `<div class="no-results">⚠️ Erro nos dados do servidor.</div>`;
+            }
+          })
+          .buscarStatusRemoto(cpf);
+      }
+
+      function limparPainel() {
+        document.getElementById('cpfBusca').value = "";
+        document.getElementById('painelResultados').innerHTML = "";
+      }
+
+      function renderizarPainelEquipe(res) {
+        var container = document.getElementById('painelResultados');
+        if(!res || !res.encontrado) {
+          container.innerHTML = `<div class="no-results">❌ Nenhuma solicitação encontrada para este CPF.</div>`;
+          return;
+        }
+
+        var html = `
+          <div class="paciente-header">
+            <strong>👤 Paciente:</strong><br>${res.nome}<br>
+            <strong>💳 CPF:</strong> ${res.cpf}
+          </div>
+        `;
+
+        var dados = res.dados || {};
+        
+        var blocoProfissional = "";
+        if (dados.profSolicitante) {
+          blocoProfissional = `
+            <div class="solicitante-box">
+              <span>🩺 Profissional Solicitante</span>
+              <strong>${dados.profSolicitante.toUpperCase()}</strong>
+            </div>
+          `;
+        }
+
+        if (res.status === "FILA_ATIVA") {
+          html += `
+            <div class="card-status" style="border-left: 5px solid var(--warning);">
+              <span class="badge badge-fila">⏳ Em Fila de Espera</span>
+              
+              ${blocoProfissional}
+              
+              <div class="grid-dados">
+                <div class="item-dado"><strong>Especialidade:</strong> ${dados.especialidade || "-"}</div>
+                <div class="item-dado"><strong>CID / Risco:</strong> ${dados.cid || "-"} | ${dados.risco || "-"}</div>
+                <div class="item-dado"><strong>Data de Envio:</strong> ${dados.data || "-"}</div>
+                <div class="item-dado"><strong>Motivo Clínico:</strong> <small>${dados.motivo || "-"}</small></div>
+              </div>
+            </div>
+          `;
+        } else if (res.status === "CONCLUIDO") {
+          html += `
+            <div class="card-status" style="border-left: 5px solid var(--success);">
+              <span class="badge badge-concluido">✅ Caso Regulado</span>
+              
+              ${blocoProfissional}
+              
+              <div class="grid-dados">
+                <div class="item-dado"><strong>Especialidade:</strong> ${dados.especialidade || "-"}</div>
+                <div class="item-dado"><strong>🔑 SISREG:</strong> ${dados.sisreg || "-"}</div>
+                <div class="item-dado"><strong>📅 Regulação:</strong> ${dados.dataConclusao || "-"}</div>
+                <div class="item-dado"><strong>⏱️ Tempo Espera:</strong> ${dados.tempoEspera !== undefined ? dados.tempoEspera : "-"} dia(s)</div>
+              </div>
+            </div>
+          `;
+        }
+        container.innerHTML = html;
+      }
+    </script>
+  </body>
+</html>
