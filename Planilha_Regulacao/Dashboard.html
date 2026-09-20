@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+      :root {
+        --sus-azul: #004587;
+        --sus-bg: #f4f6f9;
+        --txt-main: #2d3748;
+        
+        /* Cores Oficiais de Classificação de Risco (Protocolo Manchester/SUS) */
+        --emergencia-cor: #cc0000;
+        --emergencia-bg: #fde8e8;
+        --urgente-cor: #dd6b20;
+        --urgente-bg: #fef3c7;
+        --prioritario-cor: #008542;
+        --prioritario-bg: #e6f4ea;
+        --eletivo-cor: #0066cc;
+        --eletivo-bg: #ebf8ff;
+      }
+
+      body {
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        background-color: var(--sus-bg);
+        color: var(--txt-main);
+        margin: 0;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+
+      .header-dash {
+        background: var(--sus-azul);
+        color: white;
+        padding: 15px 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      }
+      .header-dash h2 { margin: 0; font-size: 20px; }
+      .header-dash span { font-size: 13px; opacity: 0.9; font-weight: bold; }
+
+      .grid-indicadores {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 15px;
+        margin-bottom: 25px;
+      }
+
+      .card-ind {
+        background: white;
+        border-radius: 8px;
+        padding: 16px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.03);
+        border-bottom: 5px solid #cbd5e0;
+        text-align: center;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+      .card-ind:hover { transform: translateY(-3px); box-shadow: 0 6px 12px rgba(0,0,0,0.08); }
+      .card-ind h3 { margin: 0; font-size: 13px; text-transform: uppercase; color: #718096; letter-spacing: 0.5px; }
+      .card-ind .num { font-size: 32px; font-weight: bold; margin-top: 5px; display: block; }
+
+      /* Customização de cores baseada no Risco Clínico */
+      .card-emergencia { border-color: var(--emergencia-cor); background: var(--emergencia-bg); color: var(--emergencia-cor); }
+      .card-urgente { border-color: var(--urgente-cor); background: var(--urgente-bg); color: var(--urgente-cor); }
+      .card-prioritario { border-color: var(--prioritario-cor); background: var(--prioritario-bg); color: var(--prioritario-cor); }
+      .card-eletivo { border-color: var(--eletivo-cor); background: var(--eletivo-bg); color: var(--eletivo-cor); }
+      .card-total { border-color: var(--sus-azul); background: #f7fafc; color: var(--sus-azul); }
+
+      .secao-lista {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        border: 1px solid #e2e8f0;
+      }
+      .secao-lista h3 { margin-top: 0; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #edf2f7; padding-bottom: 10px; font-size: 16px; }
+      .status-filtro { font-size: 13px; background: #edf2f7; padding: 4px 10px; border-radius: 20px; color: #4a5568; }
+
+      .tabela-container { overflow-x: auto; max-height: 400px; overflow-y: auto; }
+      
+      table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+      th { background: #f8fafc; padding: 12px; font-weight: bold; color: #718096; border-bottom: 2px solid #e2e8f0; position: sticky; top: 0; }
+      td { padding: 12px; border-bottom: 1px solid #edf2f7; }
+      tr:hover { background: #fdfdfd; }
+
+      .badge-risco { display: inline-block; padding: 4px 8px; font-size: 11px; font-weight: bold; border-radius: 4px; text-transform: uppercase; }
+      .br-emergencia { background: var(--emergencia-cor); color: white; }
+      .br-urgente { background: var(--urgente-cor); color: white; }
+      .br-prioritario { background: var(--prioritario-cor); color: white; }
+      .br-eletivo { background: var(--eletivo-cor); color: white; }
+
+      .loader { text-align: center; font-weight: bold; color: var(--sus-azul); padding: 40px; font-size: 16px; }
+    </style>
+  </head>
+  <body>
+
+    <div class="header-dash">
+      <h2>Situação</h2>
+      <span id="dataAtualizacao">⏱️ Carregando dados...</span>
+    </div>
+
+    <div class="grid-indicadores" id="blocoContadores">
+      <div class="card-ind card-emergencia" onclick="filtrarTabela('emergencia')">
+        <h3>🚨 Emergência</h3>
+        <span class="num" id="qtdEmergencia">0</span>
+      </div>
+      <div class="card-ind card-urgente" onclick="filtrarTabela('urgente')">
+        <h3>🔶 Urgente</h3>
+        <span class="num" id="qtdUrgente">0</span>
+      </div>
+      <div class="card-ind card-prioritario" onclick="filtrarTabela('prioritario')">
+        <h3>🟢 Prioritário</h3>
+        <span class="num" id="qtdPrioritario">0</span>
+      </div>
+      <div class="card-ind card-eletivo" onclick="filtrarTabela('eletivo')">
+        <h3>🔷 Eletivo</h3>
+        <span class="num" id="qtdEletivo">0</span>
+      </div>
+      <div class="card-ind card-total" onclick="filtrarTabela('todos')">
+        <h3>👥 Fila Total</h3>
+        <span class="num" id="qtdTotal">0</span>
+      </div>
+    </div>
+
+    <div class="secao-lista">
+      <h3>
+        <span>📋 Encaminhamentos</span>
+        <span class="status-filtro" id="txtFiltroAtivo">Exibindo: Todos os registros</span>
+      </h3>
+      
+      <div id="meuLoader" class="loader">🔄 Computando dados da fila...</div>
+      
+      <div class="tabela-container" id="areaTabela" style="display: none;">
+        <table id="tabelaPacientes">
+          <thead>
+            <tr>
+              <th>Data Entrada</th>
+              <th>Paciente</th>
+              <th>CPF</th>
+              <th>Grau de Risco</th>
+              <th>Origem / Equipe</th>
+              <th>Especialidade Solicitada</th>
+              <th>Motivo Clínico</th>
+            </tr>
+          </thead>
+          <tbody id="corpoTabela">
+            </tbody>
+        </table>
+      </div>
+    </div>
+
+    <script>
+      var cachePacientes = [];
+
+      window.onload = function() {
+        carregarDadosDash();
+      };
+
+      function carregarDadosDash() {
+        google.script.run
+          .withSuccessHandler(function(data) {
+            document.getElementById('meuLoader').style.display = "none";
+            document.getElementById('areaTabela').style.display = "block";
+            
+            // Atualiza contadores numéricos na tela
+            document.getElementById('qtdEmergencia').innerText = data.contadores.emergencia;
+            document.getElementById('qtdUrgente').innerText = data.contadores.urgente;
+            document.getElementById('qtdPrioritario').innerText = data.contadores.prioritario;
+            document.getElementById('qtdEletivo').innerText = data.contadores.eletivo;
+            document.getElementById('qtdTotal').innerText = data.contadores.total;
+            
+            var agora = new Date();
+            document.getElementById('dataAtualizacao').innerText = "📅 Atualizado em: " + agora.toLocaleDateString() + " às " + agora.toLocaleTimeString();
+
+            cachePacientes = data.pacientes;
+            renderizarLinhasTabela(cachePacientes);
+          })
+          .obterDadosDashboard();
+      }
+
+      function renderizarLinhasTabela(lista) {
+        var tbody = document.getElementById('corpoTabela');
+        tbody.innerHTML = "";
+        
+        if (lista.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#a0aec0; padding:30px;">Nenhum paciente pendente nesta categoria.</td></tr>`;
+          return;
+        }
+
+        for (var i = 0; i < lista.length; i++) {
+          var p = lista[i];
+          var classeBadge = "br-" + p.categoria;
+          
+          tbody.innerHTML += `
+            <tr>
+              <td><b>${p.data}</b></td>
+              <td>${p.nome}</td>
+              <td><code>${p.cpf}</code></td>
+              <td><span class="badge-risco ${classeBadge}">${p.risco}</span></td>
+              <td>${p.origem || '-'}</td>
+              <td>${p.especialidade}</td>
+              <td><small title="${p.motivo}">${p.motivo.length > 50 ? p.motivo.substring(0, 50) + "..." : p.motivo}</small></td>
+            </tr>
+          `;
+        }
+      }
+
+      function filtrarTabela(categoria) {
+        var txtFiltro = document.getElementById('txtFiltroAtivo');
+        
+        if (categoria === 'todos') {
+          txtFiltro.innerText = "Exibindo: Todos os registros";
+          renderizarLinhasTabela(cachePacientes);
+        } else {
+          var filtrados = cachePacientes.filter(function(p) {
+            return p.categoria === categoria;
+          });
+          
+          var nomesFiltros = { emergencia: "🚨 Emergências", urgente: "🔶 Urgentes", prioritario: "🟢 Prioritários", eletivo: "🔷 Eletivos" };
+          txtFiltro.innerText = "Filtrado por: " + nomesFiltros[categoria];
+          renderizarLinhasTabela(filtrados);
+        }
+      }
+    </script>
+  </body>
+</html>
