@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      :root { --primary: #004587; --success: #38a169; --bg: #f8fafc; --text: #2d3748; --border: #cbd5e0; }
+      body { font-family: 'Segoe UI', Arial, sans-serif; background-color: var(--bg); color: var(--text); padding: 18px; margin: 0; font-size: 14px; }
+      
+      .container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); border: 1px solid #e2e8f0; }
+      .header { font-weight: bold; color: var(--primary); font-size: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 6px; margin-bottom: 15px; text-transform: uppercase; text-align: center; }
+      
+      .row { display: flex; gap: 15px; margin-bottom: 12px; }
+      .col { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+      
+      label { font-weight: bold; font-size: 12px; color: #4a5568; }
+      input[type="text"], select, textarea { padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13.5px; width: 100%; box-sizing: border-box; font-family: inherit; }
+      input:focus, select:focus, textarea:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(0,69,135,0.1); }
+      
+      .info-conselho { background: #edf2f7; padding: 8px 12px; border-radius: 6px; font-size: 13px; font-weight: bold; color: #4a5568; margin-top: 4px; border-left: 4px solid var(--primary); min-height: 18px;}
+      
+      .btn-send { background: var(--success); color: white; border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 14px; width: 100%; text-transform: uppercase; margin-top: 15px; }
+      .btn-send:hover { opacity: 0.9; }
+      
+      .loader { text-align: center; font-weight: bold; color: var(--primary); display: none; margin-top: 15px; }
+      optgroup { font-weight: bold; color: var(--primary); background: #f7fafc; }
+      option { color: var(--text); background: white; }
+    </style>
+  </head>
+  <body>
+
+    <div class="container">
+      <div class="header">➕ Formulário de Encaminhamento - Regulação</div>
+      <form id="formInclusao">
+        
+        <div class="row">
+          <div class="col">
+            <label>Responsável / Profissional Solicitante:</label>
+            <select id="responsavel" onchange="atualizarVisualizacaoConselho()" required>
+              <option value="">-- Carregando profissionais... --</option>
+            </select>
+            <div id="boxConselho" class="info-conselho">Conselho: Selecione um profissional</div>
+          </div>
+          <div class="col">
+            <label>CPF do Paciente:</label>
+            <input type="text" id="cpfInclusao" placeholder="000.111.222-33" maxlength="14" oninput="mascararCPF(this)" required>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 12px;">
+          <label>Nome Completo do Paciente:</label>
+          <input type="text" id="nomeInclusao" placeholder="Digite sem abreviações" required>
+        </div>
+
+        <div class="row">
+          <div class="col">
+            <label>Especialidade Solicitada:</label>
+            <input type="text" id="especialidade" placeholder="Ex: Cardiologia" required>
+          </div>
+          <div class="col">
+            <label>Código CID:</label>
+            <input type="text" id="cid" placeholder="Ex: I10" required>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 12px;">
+          <label>Grau de Risco (Classificação):</label>
+          <select id="risco" required>
+            <option value="">-- Selecione a Prioridade --</option>
+            <option value="ELETIVO">🔷 ELETIVO</option>
+            <option value="PRIORITÁRIO">🟢 PRIORITÁRIO</option>
+            <option value="URGENTE">🔶 URGENTE</option>
+            <option value="EMERGÊNCIA">🚨 EMERGÊNCIA</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 5px;">
+          <label>Motivo Clínico / Justificativa Detalhada:</label>
+          <textarea id="motivo" rows="4" placeholder="Descreva os sintomas, exames realizados e a necessidade do encaminhamento..." required></textarea>
+        </div>
+
+        <button type="button" class="btn-send" onclick="enviarFormulario()">Gravar e Enviar Solicitação</button>
+      </form>
+      
+      <div id="loaderForm" class="loader">⏳ Processando dados e verificando duplicidades...</div>
+    </div>
+
+    <script>
+      var mapaConselhos = {};
+
+      window.onload = function() {
+        google.script.run
+          .withSuccessHandler(montarSelectProfissionais)
+          .buscarProfissionais();
+      };
+
+      function montarSelectProfissionais(lista) {
+        var select = document.getElementById('responsavel');
+        select.innerHTML = '<option value="">-- Selecione o Profissional --</option>';
+        
+        if (!lista || lista.length === 0) {
+          select.innerHTML = '<option value="">⚠️ Nenhum profissional cadastrado</option>';
+          return;
+        }
+
+        var grupos = {};
+        lista.forEach(function(p) {
+          if (!grupos[p.equipe]) { grupos[p.equipe] = []; }
+          grupos[p.equipe].push(p);
+          mapaConselhos[p.nome] = p.conselho;
+        });
+
+        for (var equipe in grupos) {
+          var optgroup = document.createElement('optgroup');
+          optgroup.label = equipe;
+          
+          grupos[equipe].forEach(function(p) {
+            var option = document.createElement('option');
+            option.value = p.nome;
+            option.textContent = p.nome;
+            optgroup.appendChild(option);
+          });
+          select.appendChild(optgroup);
+        }
+      }
+
+      function atualizarVisualizacaoConselho() {
+        var nomeSelecionado = document.getElementById('responsavel').value;
+        var box = document.getElementById('boxConselho');
+        
+        if (nomeSelecionado && mapaConselhos[nomeSelecionado]) {
+          box.textContent = "Conselho: " + mapaConselhos[nomeSelecionado];
+          box.style.color = "#2d3748";
+        } else if (nomeSelecionado) {
+          box.textContent = "Conselho: Não Informado/Não Cadastrado";
+          box.style.color = "#e53e3e";
+        } else {
+          box.textContent = "Conselho: Selecione um profissional";
+          box.style.color = "#4a5568";
+        }
+      }
+
+      function mascararCPF(input) {
+        var v = input.value.replace(/\D/g, "");
+        if (v.length <= 11) {
+          v = v.replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+        }
+        input.value = v;
+      }
+
+      function enviarFormulario() {
+        var form = document.getElementById('formInclusao');
+        if(!form.checkValidity()) { alert("Por favor, preencha todos os campos obrigatórios."); return; }
+
+        document.getElementById('loaderForm').style.display = "block";
+        
+        var nomeProf = document.getElementById('responsavel').value;
+
+        var dados = {
+          responsavel: nomeProf,
+          conselho: mapaConselhos[nomeProf] || "",
+          cpf: document.getElementById('cpfInclusao').value,
+          nome: document.getElementById('nomeInclusao').value,
+          especialidade: document.getElementById('especialidade').value,
+          cid: document.getElementById('cid').value,
+          risco: document.getElementById('risco').value,
+          motivo: document.getElementById('motivo').value
+        };
+
+        google.script.run
+          .withSuccessHandler(function(resposta) {
+            document.getElementById('loaderForm').style.display = "none";
+            
+            if(resposta.status === "sucesso") {
+              alert(resposta.msg);
+              google.script.host.close();
+            } else if(resposta.status === "duplicado") {
+              google.script.host.close();
+            } else {
+              alert(resposta.msg);
+            }
+          })
+          .processarInclusaoFormulario(dados);
+      }
+    </script>
+  </body>
+</html>
