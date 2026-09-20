@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+      :root { 
+        --sus-azul: #004587;      /* Azul Oficial SUS */
+        --sus-azul-claro: #0066cc;
+        --sus-verde: #008542;     /* Verde Oficial SUS */
+        --sus-verde-claro: #e6f4ea;
+        --bg: #f4f6f9; 
+        --text: #2d3748; 
+        --card-border: #d2d6dc;
+      }
+      
+      body { 
+        font-family: 'Segoe UI', system-ui, sans-serif; 
+        background-color: var(--bg); 
+        color: var(--text); 
+        padding: 20px; 
+        margin: 0; 
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        box-sizing: border-box;
+      }
+
+      /* 🛠️ TOPO EM CAMADAS: Acaba 100% com a sobreposição de botões */
+      .topo-container {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 20px;
+        width: 100%;
+      }
+
+      .search-box { 
+        background: white; 
+        padding: 14px 18px; 
+        border-radius: 8px; 
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
+        display: flex; 
+        flex-direction: column; 
+        gap: 8px;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      
+      label { font-weight: bold; font-size: 13px; color: #4a5568; }
+      .input-row { display: flex; gap: 10px; max-width: 500px; }
+      
+      input[type="text"] { 
+        padding: 8px 12px; 
+        border: 2px solid #cbd5e0; 
+        border-radius: 6px; 
+        font-size: 14px; 
+        flex-grow: 1;
+        box-sizing: border-box; 
+      }
+      input[type="text"]:focus { border-color: var(--sus-azul); outline: none; }
+      
+      .btn { background: var(--sus-azul); color: white; border: none; padding: 8px 18px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px; transition: background 0.2s; }
+      .btn:hover { background: #002d59; }
+      .btn-limpar { background: #718096; }
+      .btn-limpar:hover { background: #4a5568; }
+
+      /* Identificação do Paciente - Padrão SUS */
+      .paciente-header { 
+        background: var(--sus-azul); 
+        color: white;
+        padding: 12px 20px; 
+        border-radius: 8px; 
+        font-size: 14px; 
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      .paciente-header strong { font-size: 16px; color: #ffffff; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); }
+      .paciente-header b { background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 4px; }
+
+      #painelResultados { flex-grow: 1; overflow-y: auto; }
+      
+      .grid-demandas {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
+        gap: 20px;
+        padding-bottom: 20px;
+      }
+
+      /* Cards no padrão SUS */
+      .card-status { 
+        background: white; 
+        border: 1px solid var(--card-border); 
+        border-radius: 8px; 
+        padding: 16px; 
+        box-shadow: 0 4px 6px rgba(0,0,0,0.03); 
+        display: flex; 
+        flex-direction: column; 
+        gap: 10px; 
+      }
+      
+      .badge { display: inline-block; padding: 5px 10px; font-size: 11px; font-weight: bold; border-radius: 4px; text-transform: uppercase; align-self: flex-start; }
+      .badge-fila { background: var(--sus-verde-claro); color: var(--sus-verde); border: 1px solid #a3e2c1; }
+      .badge-concluido { background: #edf2f7; color: #4a5568; border: 1px solid #cbd5e0; }
+      
+      .grid-dados { display: flex; flex-direction: column; gap: 8px; }
+      
+      .item-dado { background: #f8fafc; padding: 8px 12px; border-radius: 6px; border: 1px solid #edf2f7; font-size: 13px; }
+      .item-dado strong { color: #718096; display: block; font-size: 10px; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+      
+      .item-dado-motivo { min-height: 65px; background: #fcfcfc; }
+
+      .baixa-zone {
+        margin-top: 8px;
+        padding-top: 12px;
+        border-top: 1px dashed #cbd5e0;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .sisreg-input-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .sisreg-input-container label { font-weight: bold; font-size: 13px; color: #2d3748; white-space: nowrap; }
+
+      .input-sisreg {
+        padding: 8px 12px !important;
+        font-size: 14px !important;
+        border: 2px solid #cbd5e0;
+        border-radius: 6px;
+        width: 100% !important;
+        box-sizing: border-box;
+      }
+      .input-sisreg:focus { border-color: var(--sus-verde); outline: none; }
+
+      .botoes-decisao-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+
+      .btn-baixa {
+        color: white;
+        border: none;
+        padding: 12px 14px;
+        border-radius: 6px;
+        font-weight: bold;
+        cursor: pointer;
+        font-size: 12px;
+        text-transform: uppercase;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      }
+
+      .btn-nova { background: #718096; opacity: 0.5; }
+      .btn-retorno { background: #718096; opacity: 0.5; }
+
+      /* Estilo Destaque Ativo: Direciona o clique do Regulador */
+      .btn-baixa.sugerido {
+        opacity: 1 !important;
+        transform: scale(1.02);
+        box-shadow: 0 0 0 3px rgba(0, 133, 66, 0.3), 0 4px 10px rgba(0,0,0,0.15);
+      }
+      
+      .btn-nova.sugerido { background: var(--sus-azul-claro); }
+      .btn-retorno.sugerido { background: var(--sus-verde); }
+
+      .btn-baixa:hover { opacity: 0.9; transform: scale(1.01); }
+
+      .info-final { 
+        background: #f8fafc; 
+        border: 1px solid #e2e8f0; 
+        padding: 10px; 
+        border-radius: 6px; 
+        margin-top: 4px; 
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .sisreg-box { grid-column: span 2; font-size: 13px; font-weight: bold; color: var(--sus-azul); border-bottom: 1px dashed #e2e8f0; padding-bottom: 6px; }
+      .datas-box { font-size: 11px; color: #718096; line-height: 1.4; }
+      .tempo-box { font-size: 12px; font-weight: bold; color: var(--sus-verde); text-align: right; align-self: center; }
+
+      .loader { text-align: center; font-weight: bold; color: var(--sus-azul); padding: 40px 0; font-size: 15px; display: none; }
+      .no-results { text-align: center; color: #a0aec0; padding: 40px; font-size: 14px; background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+    </style>
+  </head>
+  <body>
+
+    <div class="topo-container">
+      <div class="search-box">
+        <label>Consultar Paciente na Regulação (CPF):</label>
+        <div class="input-row">
+          <input type="text" id="cpfBusca" placeholder="000.111.222-33" maxlength="14" oninput="mascararCPF(this)" onkeydown="if(event.key === 'Enter') consultarStatus()">
+          <button class="btn" onclick="consultarStatus()">Buscar</button>
+          <button class="btn btn-limpar" onclick="limparPainel()">Limpar</button>
+        </div>
+      </div>
+      <div id="blocoPaciente" class="paciente-header" style="display: none;">
+        <div>👤 Regulando: <strong id="txtNome">-</strong></div>
+        <div>💳 CPF: <b id="txtCPF">-</b></div>
+      </div>
+    </div>
+
+    <div id="meuLoader" class="loader">🔍 Pesquisando nos bancos da regulação...</div>
+    <div id="painelResultados"></div>
+
+    <script>
+      function mascararCPF(input) {
+        var v = input.value.replace(/\D/g, "");
+        if (v.length <= 11) {
+          v = v.replace(/(\d{3})(\d)/, "$1.$2");
+          v = v.replace(/(\d{3})(\d)/, "$1.$2");
+          v = v.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+        }
+        input.value = v;
+      }
+
+      function consultarStatus() {
+        var cpf = document.getElementById('cpfBusca').value;
+        if(cpf.length < 14) { alert("Digite o CPF completo."); return; }
+        
+        document.getElementById('painelResultados').innerHTML = "";
+        document.getElementById('blocoPaciente').style.display = "none";
+        document.getElementById('meuLoader').style.display = "block";
+        
+        google.script.run
+          .withSuccessHandler(function(retornoObjeto) {
+            document.getElementById('meuLoader').style.display = "none";
+            renderizarPainelRegulador(retornoObjeto);
+          })
+          .withFailureHandler(function(err) {
+            document.getElementById('meuLoader').style.display = "none";
+            alert("Erro na conexão: " + err.message);
+          })
+          .buscarDemandasPaciente(cpf); 
+      }
+
+      function limparPainel() {
+        document.getElementById('cpfBusca').value = "";
+        document.getElementById('painelResultados').innerHTML = "";
+        document.getElementById('blocoPaciente').style.display = "none";
+        document.getElementById('cpfBusca').focus();
+      }
+
+      function executarBaixaRegulador(codigoIdentificador, indexInput, statusDecidido) {
+        var campoSisreg = document.getElementById('sisreg_' + indexInput);
+        var numeroSisreg = campoSisreg.value.trim();
+        
+        document.getElementById('meuLoader').style.display = "block";
+        
+        google.script.run
+          .withSuccessHandler(function(msg) {
+            alert(msg);
+            consultarStatus(); 
+          })
+          .withFailureHandler(function(err) {
+            document.getElementById('meuLoader').style.display = "none";
+            alert("Falha ao salvar a baixa: " + err.message);
+          })
+          .concluirDemandaDoPainel(codigoIdentificador, numeroSisreg, statusDecidido); 
+      }
+
+      function renderizarPainelRegulador(res) {
+  var container = document.getElementById('painelResultados');
+  var blocoPac = document.getElementById('blocoPaciente');
+  
+  if(!res || !res.encontrado || res.demandas.length === 0) {
+    container.innerHTML = `<div class="no-results">❌ Nenhuma solicitação ativa ou histórica encontrada para este CPF.</div>`;
+    return;
+  }
+
+  document.getElementById('txtNome').innerText = res.nome || "Não informado";
+  document.getElementById('txtCPF').innerText = res.cpf || "Não informado";
+  blocoPac.style.display = "flex";
+
+  var html = `<div class="grid-demandas">`;
+
+  for (var i = 0; i < res.demandas.length; i++) {
+    var d = res.demandas[i]; 
+    
+    var htmlSolicitante = `
+      <div style="background-color: #f1f5f9; padding: 10px; border-radius: 6px; margin: 8px 0; border-left: 4px solid #004587; font-size: 13px;">
+        <span style="display: block; font-size: 10px; font-weight: bold; color: #475569; text-transform: uppercase;">🩺 Solicitante</span>
+        <strong>${d.profSolicitante || "NÃO INFORMADO"}</strong>
+        <span style="display: block; font-size: 11px; color: #64748b; margin-top: 2px;">📍 Origem: ${d.origemUnidade || "Não mapeada"}</span>
+      </div>
+    `;
+    
+    if (!d.jaFinalizado) {
+      var classeNova = (d.tipoSolicitacao === 'NOVA SOLICITACAO') ? 'sugerido' : '';
+      var classeRetorno = (d.tipoSolicitacao === 'DEMANDA RETORNO') ? 'sugerido' : '';
+      
+      html += `
+        <div class="card-status" style="border-top: 5px solid var(--sus-verde);">
+          <span class="badge badge-fila">⏳ FILA: ${d.tipoSolicitacao}</span>
+          
+          ${htmlSolicitante} <div class="grid-dados">
+            <div class="item-dado"><strong>Especialidade</strong>${d.especialidade || "-"}</div>
+            <div class="item-dado"><strong>Código CID / Classificação</strong>${d.cid || "-"}</div>
+            <div class="item-dado"><strong>Grau de Risco</strong>${d.risco || "-"}</div>
+            <div class="item-dado"><strong>Data de Entrada</strong>${d.data || "-"}</div>
+            <div class="item-dado item-dado-motivo"><strong>Motivo Clínico / Justificativa</strong><small>${d.motivo || "-"}</small></div>
+          </div>
+          
+          <div class="baixa-zone">
+            <div class="sisreg-input-container">
+              <label>Nº SISREG:</label>
+              <input type="text" class="input-sisreg" id="sisreg_${i}" placeholder="Digite o código SISREG..." maxlength="18">
+            </div>
+            
+            <div class="botoes-decisao-row">
+              <button class="btn-baixa btn-nova ${classeNova}" onclick="executarBaixaRegulador('${d.idObjeto}', ${i}, 'NOVA SOLICITACAO')">
+                Nova Solicitação
+              </button>
+              <button class="btn-baixa btn-retorno ${classeRetorno}" onclick="executarBaixaRegulador('${d.idObjeto}', ${i}, 'DEMANDA RETORNO')">
+                Demanda Retorno
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    } else {
+      html += `
+        <div class="card-status" style="border-top: 5px solid var(--sus-azul);">
+          <span class="badge badge-concluido">✅ REGULADO / ARQUIVADO</span>
+          
+          ${htmlSolicitante} <div class="grid-dados">
+            <div class="item-dado"><strong>Especialidade</strong>${d.especialidade || "-"}</div>
+            <div class="item-dado"><strong>Código CID / Classificação</strong>${d.cid || "-"}</div>
+            <div class="item-dado"><strong>Grau de Risco</strong>${d.risco || "-"}</div>
+            <div class="item-dado item-dado-motivo"><strong>Motivo Clínico</strong><small>${d.motivo || "-"}</small></div>
+          </div>
+          <div class="info-final">
+            <div class="sisreg-box">🔑 SISREG: ${d.sisregSalvo || "Não informado"}</div>
+            <div class="datas-box">
+              📅 Entrada: ${d.data || "-"}<br>
+              📅 Regulação: ${d.dataConclusao || "-"}
+            </div>
+            <div class="tempo-box">⏱️ Espera: ${d.diasEspera !== undefined ? d.diasEspera : "-"} dia(s)</div>
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  html += `</div>`;
+  container.innerHTML = html;
+}
+    </script>
+  </body>
+</html>
