@@ -1,6 +1,6 @@
-# Sistema de Regulação Médica - Google Apps Script
+# Sistema de Regulação Médica UBS - Google Apps Script
 
-Este projeto contém a automação em Google Apps Script e interfaces HTML para controle e acompanhamento de filas de regulação médica.
+Este projeto contém a automação em Google Apps Script e interfaces HTML para controle e acompanhamento de filas de regulação médica em UBS.
 
 ## Funcionalidades
 - Fila ativa e histórico de demandas de pacientes.
